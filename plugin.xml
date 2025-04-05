@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+    <!-- Define a command for running CoverAgent -->
+    <extension point="org.eclipse.ui.commands">
+        <command 
+            id="test_agent.eclipse.commands.runCoverAgent" 
+            name="Run CoverAgent">
+        </command>
+    </extension>
+
+    <!-- Add menu contributions to various context menus -->
+    <extension point="org.eclipse.ui.menus">
+        <!-- Package Explorer context menu -->
+        <menuContribution locationURI="popup:org.eclipse.jdt.ui.PackageExplorer">
+            <command 
+                commandId="test_agent.eclipse.commands.runCoverAgent" 
+                label="Run CoverAgent" 
+                style="push">
+                <visibleWhen checkEnabled="false">
+                    <with variable="selection">
+                        <count value="+"/>
+                        <iterate>
+                            <or>
+                                <instanceof value="org.eclipse.jdt.core.ICompilationUnit"/>
+                                <and>
+                                    <instanceof value="org.eclipse.core.resources.IFile"/>
+                                    <test property="org.eclipse.core.resources.name" value="*.java"/>
+                                </and>
+                            </or>
+                        </iterate>
+                    </with>
+                </visibleWhen>
+            </command>
+        </menuContribution>
+
+        <!-- Project Explorer context menu -->
+        <menuContribution locationURI="popup:org.eclipse.ui.navigator.ProjectExplorer#PopupMenu">
+            <command 
+                commandId="test_agent.eclipse.commands.runCoverAgent" 
+                label="Run CoverAgent" 
+                style="push">
+                <visibleWhen checkEnabled="false">
+                    <with variable="selection">
+                        <count value="+"/>
+                        <iterate>
+                            <or>
+                                <instanceof value="org.eclipse.jdt.core.ICompilationUnit"/>
+                                <and>
+                                    <instanceof value="org.eclipse.core.resources.IFile"/>
+                                    <test property="org.eclipse.core.resources.name" value="*.java"/>
+                                </and>
+                            </or>
+                        </iterate>
+                    </with>
+                </visibleWhen>
+            </command>
+        </menuContribution>
+
+        <!-- Java Editor context menu -->
+        <menuContribution locationURI="popup:#JavaEditorContext">
+            <command 
+                commandId="test_agent.eclipse.commands.runCoverAgent" 
+                label="Run CoverAgent" 
+                style="push">
+            </command>
+        </menuContribution>
+
+        <!-- Navigator context menu (for Resource perspective) -->
+        <menuContribution locationURI="popup:org.eclipse.ui.views.ResourceNavigator">
+            <command 
+                commandId="test_agent.eclipse.commands.runCoverAgent" 
+                label="Run CoverAgent" 
+                style="push">
+                <visibleWhen checkEnabled="false">
+                    <with variable="selection">
+                        <count value="+"/>
+                        <iterate>
+                            <and>
+                                <instanceof value="org.eclipse.core.resources.IFile"/>
+                                <test property="org.eclipse.core.resources.name" value="*.java"/>
+                            </and>
+                        </iterate>
+                    </with>
+                </visibleWhen>
+            </command>
+        </menuContribution>
+
+   
+    </extension>
+
+    <!-- Handler for the command -->
+    <extension point="org.eclipse.ui.handlers">
+        <handler 
+            class="test_agent.eclipse.handlers.RunCoverAgentHandler" 
+            commandId="test_agent.eclipse.commands.runCoverAgent">
+        </handler>
+    </extension>
+</plugin>
