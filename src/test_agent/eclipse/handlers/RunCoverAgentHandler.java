@@ -65,7 +65,11 @@ public class RunCoverAgentHandler extends AbstractHandler {
         IProject project = file.getProject();
         IJavaProject javaProject = JavaCore.create(project);
         
-        logger.info("Selected Java file: " + file.getFullPath().toString());
+        if (file != null) {
+            logger.info("Handler: handleJavaFile called for: " + file.getLocation().toOSString());
+        } else {
+            logger.warning("Handler: handleJavaFile called but file is NULL!");
+        }
         
         // Open the configuration dialog
         CoverAgentConfigDialog dialog = new CoverAgentConfigDialog(window.getShell(), javaProject, file);

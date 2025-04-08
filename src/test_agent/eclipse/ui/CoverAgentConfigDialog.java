@@ -330,8 +330,10 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
         
         modelCombo = new Combo(commandGroup, SWT.DROP_DOWN | SWT.READ_ONLY);
         modelCombo.setItems(new String[] {
+        	"deepseek/deepseek-chat-v3-0324:free",
+        	"deepseek/deepseek-chat:free",
         	"google/gemini-2.5-pro-exp-03-25:free",
-            "deepseek/deepseek-chat-v3-0324:free"
+            
             
         });
         modelCombo.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 2, 1));
@@ -353,7 +355,7 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
         coverageTypeLabel.setText("Coverage Type:");
         
         coverageTypeCombo = new Combo(coverageGroup, SWT.DROP_DOWN | SWT.READ_ONLY);
-        coverageTypeCombo.setItems(new String[] {"jacoco", "coverage", "pytest-cov"});
+        coverageTypeCombo.setItems(new String[] {"jacoco"});
         coverageTypeCombo.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
         
         // Desired coverage
@@ -367,18 +369,7 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
         desiredCoverageSpinner.setPageIncrement(10);
         desiredCoverageSpinner.setLayoutData(new GridData(SWT.BEGINNING, SWT.CENTER, false, false));
         
-        // Coverage options
-        diffCoverageCheckbox = new Button(coverageGroup, SWT.CHECK);
-        diffCoverageCheckbox.setText("Diff Coverage");
-        diffCoverageCheckbox.setLayoutData(new GridData(SWT.BEGINNING, SWT.CENTER, false, false, 2, 1));
-        
-        strictCoverageCheckbox = new Button(coverageGroup, SWT.CHECK);
-        strictCoverageCheckbox.setText("Strict Coverage");
-        strictCoverageCheckbox.setLayoutData(new GridData(SWT.BEGINNING, SWT.CENTER, false, false, 2, 1));
-        
-        useReportCoverageCheckbox = new Button(coverageGroup, SWT.CHECK);
-        useReportCoverageCheckbox.setText("Use Report Coverage");
-        useReportCoverageCheckbox.setLayoutData(new GridData(SWT.BEGINNING, SWT.CENTER, false, false, 2, 1));
+ 
     }
 
     /**
@@ -502,6 +493,21 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
             
             // If a file is selected, set it as the source file
             if (selectedFile != null) {
+            	  logger.info("initializeValues: selectedFile is NOT null. Attempting to set sourceFileText.");
+                  try {
+                      String path = selectedFile.getLocation().toOSString();
+                      logger.info("initializeValues: Path to set: " + path);
+                      if (sourceFileText == null) {
+                           logger.severe("initializeValues: sourceFileText is NULL before setting text!");
+                      } else {
+                           sourceFileText.setText(path);
+                           logger.info("initializeValues: Successfully called sourceFileText.setText().");
+                           // Optionally check if it worked immediately:
+                            logger.info("initializeValues: sourceFileText.getText() after set: " + sourceFileText.getText());
+                      }
+                  } catch (Exception ex) {
+                      logger.log(java.util.logging.Level.SEVERE, "initializeValues: Error setting sourceFileText", ex);
+                 }
                 sourceFileText.setText(selectedFile.getLocation().toOSString());
                 
                 // Try to find a corresponding test file
@@ -530,7 +536,6 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
         desiredCoverageSpinner.setSelection(80);
         maxIterationsSpinner.setSelection(2);
         runTestsMultipleTimesSpinner.setSelection(1);
-        useReportCoverageCheckbox.setSelection(true);
         siteUrlText.setText("http://localhost");
         siteNameText.setText("EclipseCoverAgentPlugin");
         
@@ -721,15 +726,71 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
         }
     }
 
-    @Override
-    protected void okPressed() {
-        // Collect all the parameters and run CoverAgent
-    	 // Check if API key is provided
-        String apiKey = apiKeyText.getText().trim();
-        if (apiKey == null || apiKey.isEmpty()) {
-            setErrorMessage("OpenRouter API key is required. Please enter a valid API key from openrouter.ai");
-            return;
-        }
+ 
+        @Override
+        protected void okPressed() {
+            // --- Start Validation ---
+            setErrorMessage(null); // Clear previous error messages
+
+            String sourceFilePath = sourceFileText.getText().trim();
+            if (sourceFilePath.isEmpty()) {
+                setErrorMessage("Source File path cannot be empty.");
+                sourceFileText.setFocus(); // Optional: set focus to the problematic field
+                return; // Stop processing, keep dialog open
+            }
+            if (!Files.exists(Paths.get(sourceFilePath))) {
+                setErrorMessage("Source File does not exist: " + sourceFilePath);
+                sourceFileText.setFocus();
+                return; // Stop processing, keep dialog open
+            }
+
+            String testFilePath = testFileText.getText().trim();
+             // Add similar checks for test file if it's mandatory or needs validation
+            if (testFilePath.isEmpty()) {
+                 setErrorMessage("Test File path cannot be empty.");
+                 testFileText.setFocus();
+                 return;
+            }
+             // Optionally check if test file exists if it MUST exist beforehand
+//            if (!Files.exists(Paths.get(testFilePath))) {
+//                setErrorMessage("Test File does not exist: " + testFilePath);
+//                testFileText.setFocus();
+//                return;
+//            }
+
+
+            String testCommand = testCommandText.getText().trim();
+            if (testCommand.isEmpty()) {
+                setErrorMessage("Test Command cannot be empty.");
+                testCommandText.setFocus();
+                return;
+            }
+
+            String projectRootPath = projectRootText.getText().trim();
+            if (projectRootPath.isEmpty()) {
+                setErrorMessage("Project Root path cannot be empty.");
+                projectRootText.setFocus();
+                return;
+            }
+            if (!Files.isDirectory(Paths.get(projectRootPath))) {
+                 setErrorMessage("Project Root path must be a valid directory: " + projectRootPath);
+                 projectRootText.setFocus();
+                 return;
+            }
+
+            // Check if API key is provided (already present, but good to keep)
+            String apiKey = apiKeyText.getText().trim();
+            if (apiKey.isEmpty()) {
+                // Use setErrorMessage instead of a popup for consistency
+                setErrorMessage("OpenRouter API key is required. Please enter a valid API key from openrouter.ai");
+                apiKeyText.setFocus(); // Set focus to the API key field
+                return; // Stop processing, keep dialog open
+            }
+            // Save the API key only if validation passes this far
+            SecureStorageUtil.saveApiKey(apiKey);
+            logger.info("API Key validated and saved to secure storage.");
+  
+        
         SecureStorageUtil.saveApiKey(apiKey);
 
         CoverAgentArgs args = new CoverAgentArgs.Builder()
