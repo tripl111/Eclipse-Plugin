@@ -13,19 +13,22 @@ import org.eclipse.swt.widgets.Display;
 import org.eclipse.ui.PlatformUI;
 import org.eclipse.ui.ide.IDE;
 
-import test_agent.CoverAgent;
-import test_agent.CoverAgentArgs;
-import test_agent.eclipse.CoverAgentPlugin; // Your plugin activator class
+import test_agent.eclipse.CoverAgent;
+import test_agent.eclipse.CoverAgentArgs;
+import test_agent.eclipse.CoverAgentPlugin;
+import test_agent.eclipse.util.ConsoleUtil;// Your plugin activator class
 
 import java.io.File;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 public class RunCoverAgentJob extends Job {
+	
 
     private static final Logger logger = Logger.getLogger(RunCoverAgentJob.class.getName());
 
     private final CoverAgentArgs args;
+    
 
     public RunCoverAgentJob(String name, CoverAgentArgs args) {
         super(name);
@@ -33,33 +36,34 @@ public class RunCoverAgentJob extends Job {
         setUser(true); // Makes the job visible in the Progress view
     }
 
-    @Override
-    protected IStatus run(IProgressMonitor monitor) {
-        monitor.beginTask("Running CoverAgent Test Generation", IProgressMonitor.UNKNOWN);
-        logger.info("Starting CoverAgent job in background...");
+   
+        @Override
+        protected IStatus run(IProgressMonitor monitor) {
+            monitor.beginTask("Running CoverAgent Test Generation", IProgressMonitor.UNKNOWN);
+            
+            // Show the console at the start
+            ConsoleUtil.showConsole();
+            ConsoleUtil.writeInfo("Starting CoverAgent test generation...");
 
-        try {
-            // --- Execute the long-running task ---
-            CoverAgent coverAgent = new CoverAgent(args, null); // Pass monitor if CoverAgent can use it
-            monitor.subTask("Generating tests...");
-            coverAgent.run(); // This runs in the background thread now
+            try {
+                CoverAgent coverAgent = new CoverAgent(args, null);
+                monitor.subTask("Generating tests...");
+                coverAgent.run();
 
-            if (monitor.isCanceled()) {
-                logger.info("CoverAgent job cancelled.");
-                return Status.CANCEL_STATUS;
+                if (monitor.isCanceled()) {
+                    ConsoleUtil.writeInfo(getName());
+                    return Status.CANCEL_STATUS;
+                }
+
+                monitor.done();
+                ConsoleUtil.writeInfo("CoverAgent job completed successfully.");
+                return Status.OK_STATUS;
+
+            } catch (Exception e) {
+                ConsoleUtil.writeError("Error during test generation: " + e.getMessage());
+                return new Status(IStatus.ERROR, CoverAgentPlugin.PLUGIN_ID, "Test generation failed", e);
             }
-
-           
-            monitor.done();
-            logger.info("CoverAgent job completed successfully.");
-            return Status.OK_STATUS;
-
-        } catch (Exception e) {
-            logger.log(Level.SEVERE, "Error running CoverAgent job: " + e.getMessage(), e);
-            monitor.done();
-            return new Status(IStatus.ERROR, CoverAgentPlugin.PLUGIN_ID, "CoverAgent failed: " + e.getMessage(), e);
         }
-    }
 
     
 }

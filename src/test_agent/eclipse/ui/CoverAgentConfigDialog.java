@@ -51,8 +51,8 @@ import org.eclipse.core.resources.IContainer;
 import test_agent.eclipse.util.SecureStorageUtil;
 import org.eclipse.core.runtime.jobs.Job;
 
-import test_agent.CoverAgent;
-import test_agent.CoverAgentArgs;
+import test_agent.eclipse.CoverAgent;
+import test_agent.eclipse.CoverAgentArgs;
 import test_agent.eclipse.job.RunCoverAgentJob;
 
 import java.io.File;
@@ -158,10 +158,10 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
     }
 
     // Override getInitialSize to make the dialog larger
-    @Override
-    protected Point getInitialSize() {
-        return new Point(1800, 2200); // Width, height - adjust as needed
-    }
+	/*
+	 * @Override protected Point getInitialSize() { return new Point(1800, 2200); //
+	 * Width, height - adjust as needed }
+	 */
     /**
      * Create the file paths group
      * 
@@ -540,7 +540,7 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
         siteNameText.setText("EclipseCoverAgentPlugin");
         
         // Load Java files from the project
-        loadJavaFiles();
+       // loadJavaFiles();
     }
 
     /**
@@ -582,26 +582,17 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
     /**
      * Load Java files from the project and populate the included files viewer
      */
-    private void loadJavaFiles() {
-        try {
-            IPackageFragmentRoot[] packageRoots = javaProject.getPackageFragmentRoots();
-            for (IPackageFragmentRoot root : packageRoots) {
-                if (root.getKind() == IPackageFragmentRoot.K_SOURCE) {
-                    IResource resource = root.getCorrespondingResource();
-                    if (resource instanceof IFolder) {
-                        try {
-							loadJavaFilesFromFolder((IFolder) resource);
-						} catch (CoreException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-                    }
-                }
-            }
-        } catch (JavaModelException e) {
-            logger.warning("Error loading Java files: " + e.getMessage());
-        }
-    }
+	/*
+	 * private void loadJavaFiles() { try { IPackageFragmentRoot[] packageRoots =
+	 * javaProject.getPackageFragmentRoots(); for (IPackageFragmentRoot root :
+	 * packageRoots) { if (root.getKind() == IPackageFragmentRoot.K_SOURCE) {
+	 * IResource resource = root.getCorrespondingResource(); if (resource instanceof
+	 * IFolder) { try { loadJavaFilesFromFolder((IFolder) resource); } catch
+	 * (CoreException e) { // TODO Auto-generated catch block e.printStackTrace(); }
+	 * } } } } catch (JavaModelException e) {
+	 * logger.warning("Error loading Java files: " + e.getMessage()); }}
+	 */
+    
 
     /**
      * Recursively load Java files from the given folder
@@ -609,16 +600,14 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
      * @param folder The folder to search
      * @throws CoreException If an error occurs while accessing the folder
      */
-    private void loadJavaFilesFromFolder(IFolder folder) throws CoreException {
-        for (IResource resource : folder.members()) {
-            if (resource instanceof IFile && "java".equals(resource.getFileExtension())) {
-                includedFilePaths.add(resource.getLocation().toOSString());
-            } else if (resource instanceof IFolder) {
-                loadJavaFilesFromFolder((IFolder) resource);
-            }
-        }
-        includedFilesViewer.setInput(includedFilePaths);
-    }
+	/*
+	 * private void loadJavaFilesFromFolder(IFolder folder) throws CoreException {
+	 * for (IResource resource : folder.members()) { if (resource instanceof IFile
+	 * && "java".equals(resource.getFileExtension())) {
+	 * includedFilePaths.add(resource.getLocation().toOSString()); } else if
+	 * (resource instanceof IFolder) { loadJavaFilesFromFolder((IFolder) resource);
+	 * } } includedFilesViewer.setInput(includedFilePaths); }
+	 */
     /**
      * Browse for a file in the Eclipse workspace and set the selected path to the given text field
      *
@@ -697,13 +686,79 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
      * Add a file to the included files list
      */
     private void addIncludedFile() {
-        FileDialog dialog = new FileDialog(getShell(), SWT.OPEN);
-        dialog.setText("Select Included File");
-        dialog.setFilterExtensions(new String[]{"*.java"});
-        String selectedFile = dialog.open();
-        if (selectedFile != null) {
-            includedFilePaths.add(selectedFile);
-            includedFilesViewer.setInput(includedFilePaths);
+        ElementTreeSelectionDialog dialog = new ElementTreeSelectionDialog(
+                getShell(),
+                new WorkbenchLabelProvider(), // Use standard Eclipse labels
+                new WorkbenchContentProvider()); // Use standard Eclipse content structure
+
+        dialog.setTitle("Select Included Files");
+        dialog.setMessage("Select files from the workspace to include (folders cannot be selected):");
+        dialog.setInput(ResourcesPlugin.getWorkspace().getRoot()); // Start browsing from workspace root
+        dialog.setAllowMultiple(true); // Allow selecting multiple files
+
+        // Filter: Show containers (projects, folders) for navigation, but only allow files to be *valid* selections.
+        dialog.addFilter(new ViewerFilter() {
+            @Override
+            public boolean select(Viewer viewer, Object parentElement, Object element) {
+                // Show projects, folders, and java files initially in the tree
+                if (element instanceof IContainer) { // IProject or IFolder
+                    return true; // Always show containers to allow navigation
+                }
+                if (element instanceof IFile) {
+                    // Optionally filter specific file types here if needed, e.g., Java files
+                    // return "java".equals(((IFile) element).getFileExtension());
+                    return true; // Show all files for now, validator will handle selection
+                }
+                return false;
+            }
+        });
+
+        // Validator: Ensure only IFile resources can be selected for the final result.
+        dialog.setValidator(new ISelectionStatusValidator() {
+            @Override
+            public IStatus validate(Object[] selection) {
+                if (selection.length == 0) {
+                    // Allow empty selection for OK if desired, or return error
+                     return new Status(IStatus.ERROR, PlatformUI.PLUGIN_ID, "At least one file must be selected.");
+                    // return Status.OK_STATUS; // If allowing OK with no selection
+                }
+                for (Object obj : selection) {
+                    if (!(obj instanceof IFile)) {
+                        // If anything other than a file is selected, it's an error
+                        return new Status(IStatus.ERROR, PlatformUI.PLUGIN_ID, "Only files can be selected, not folders or projects.");
+                    }
+                    // Optional: Add check for file extension here if needed
+                    // IFile file = (IFile) obj;
+                    // if (!"java".equals(file.getFileExtension())) {
+                    //    return new Status(IStatus.ERROR, PlatformUI.PLUGIN_ID, "Only Java files can be selected.");
+                    // }
+                }
+                // All selected items are files
+                return Status.OK_STATUS;
+            }
+        });
+
+        // Open the dialog
+        if (dialog.open() == Window.OK) {
+            Object[] results = dialog.getResult(); // Get selected objects
+            boolean changed = false;
+            for (Object result : results) {
+                if (result instanceof IFile) {
+                    IFile file = (IFile) result;
+                    String path = file.getLocation().toOSString();
+                    // Add to list if not already present
+                    if (!includedFilePaths.contains(path)) {
+                        includedFilePaths.add(path);
+                        changed = true;
+                    }
+                }
+            }
+            // Update the viewer only if changes were made
+            if (changed) {
+                // It's often easiest to reset the input after modifying the list
+                includedFilesViewer.setInput(includedFilePaths);
+                // includedFilesViewer.refresh(); // May also work depending on provider
+            }
         }
     }
 
@@ -805,11 +860,8 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
                 .coverageType(coverageTypeCombo.getText())
                 .desiredCoverage(desiredCoverageSpinner.getSelection())
                 .additionalInstructions(additionalInstructionsText.getText())
-                .useReportCoverageFeatureFlag(useReportCoverageCheckbox.getSelection())
                 .projectRoot(projectRootText.getText())
                 .maxIterations(maxIterationsSpinner.getSelection())
-                .diffCoverage(diffCoverageCheckbox.getSelection())
-                .strictCoverage(strictCoverageCheckbox.getSelection())
                 .runEachTestSeparately(runEachTestSeparatelyCheckbox.getSelection())
                 .runTestsMultipleTimes(runTestsMultipleTimesSpinner.getSelection())
                 .apiKey(apiKeyText.getText())
