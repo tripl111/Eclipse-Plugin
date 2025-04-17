@@ -11,6 +11,7 @@ import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 
 
@@ -57,7 +58,6 @@ public class CoverAgent {
                     args.getApiKey(),
                     args.getSiteUrl(),
                     args.getSiteName(),
-
                     modelToUse
             );
             this.agentCompletion = new DefaultAgentCompletion(
@@ -96,15 +96,6 @@ public class CoverAgent {
                 args.setTestCommand(newCommandLine);
             }
         }
-               /* logger.info(String.format("Adapted test command from: `%s`\nTo run only a single test: `%s`",
-                        testCommand, newCommandLine));
-            } else {
-                logger.warning("Could not adapt test command to run a single test file. Proceeding with original command: " + testCommand);
-
-            }
-        }*/
-
-
 
         this.testGen = new UnitTestGenerator(
                 args.getSourceFilePath(),
@@ -126,8 +117,6 @@ public class CoverAgent {
                 this.agentCompletion,
                 args.getRunTestsMultipleTimes()
         );
-
-
 
     }
 
@@ -159,7 +148,6 @@ public class CoverAgent {
 
 
 
-
     }
 
     /**
@@ -176,7 +164,7 @@ public class CoverAgent {
                 Path targetDir = Paths.get(targetTestPath).getParent();
                 if (targetDir != null && !Files.exists(targetDir)) {
                     Files.createDirectories(targetDir);
-                    logger.info("Created directory for test output path: " + targetDir);
+                    System.out.println("Created directory for test output path: " + targetDir);
                 }
 
                 Files.copy(
@@ -184,7 +172,7 @@ public class CoverAgent {
                         Paths.get(targetTestPath),
                         StandardCopyOption.REPLACE_EXISTING
                 );
-               // logger.info("Copied initial test file from " + sourceTestPath + " to " + targetTestPath);
+                System.out.println("Copied initial test file from " + sourceTestPath + " to " + targetTestPath);
             } catch (IOException e) {
                 logger.severe("Error copying test file from " + sourceTestPath + " to " + targetTestPath + ": " + e.getMessage());
                 throw new RuntimeException("Failed to copy initial test file", e);
@@ -193,7 +181,7 @@ public class CoverAgent {
             args.setTestFileOutputPath(sourceTestPath);
             System.out.println("Test file output path not specified or same as input, will modify test file in place: " + sourceTestPath);
         } else {
-            System.out.println("Test file output path is the same as input path: " + targetTestPath + ". Will modify in place.");
+        	System.out.println("Test file output path is the same as input path: " + targetTestPath + ". Will modify in place.");
         }
     }
 
@@ -240,26 +228,57 @@ public class CoverAgent {
         }
     }
 
-
     public InitResult init() throws Exception {
-        TestGenerationLogger.printHeader();
-
-        //logger.info("Starting initial test suite analysis...");
+        System.out.println("Starting initial test suite analysis...");
         testValidator.initialTestSuiteAnalysis();
+        System.out.println("Running initial coverage analysis...");
         testValidator.runCoverage();
+        System.out.println("Initial analysis complete.");
 
-        double initialCoverage = testValidator.getCurrentCoverage() * 100.0;
-        TestGenerationLogger.printInitialStatus(initialCoverage, testValidator.getDesiredCoverage());
+
+        List<Map<String, Object>> failedTests = testValidator.getFailedTestRuns();
+        if (failedTests != null && !failedTests.isEmpty()) {
+            logger.warning("Initial test run failed for " + failedTests.size() + " tests.");
+        } else {
+            logger.info("Initial test run passed.");
+        }
+
+
+        String coverageReport = testValidator.getCodeCoverageReport();
+        if (coverageReport != null && !coverageReport.isBlank()) {
+            logger.info("Initial coverage report generated/found.");
+        } else {
+            logger.warning("Could not obtain initial coverage report.");
+        }
+
 
         return new InitResult(
-                testValidator.getFailedTestRuns(),
+                failedTests,
                 testValidator.getLanguage(),
                 testValidator.getTestingFramework(),
-                testValidator.getCodeCoverageReport()
+                coverageReport
         );
     }
 
 
+    /**
+     * Run the test generation process.
+     * This method performs the following steps:
+     * 1. Loop until desired coverage is reached or maximum iterations are met.
+     * 2. Generate new tests.
+     * 3. Loop through each new test and validate it.
+     * 4. Increment the iteration count.
+     * 5. Check if the desired coverage has been reached.
+     * 6. If the desired coverage has been reached, log the final coverage.
+     * 7. If the maximum iteration limit is reached, log a failure message if strict coverage is specified.
+     * 8. Provide metrics on total token usage.
+     * 9. Generate a report.
+     *
+     * @param failedTestRuns List of failed test runs from init()
+     * @param language The programming language from init()
+     * @param testFramework The testing framework from init()
+     * @param coverageReport The initial coverage report from init()
+     */
     public void runTestGen(
             List<Map<String, Object>> failedTestRuns,
             String language,
@@ -268,11 +287,16 @@ public class CoverAgent {
     ) {
         int iterationCount = 0;
         boolean targetReached = false;
-        double previousCoverage = testValidator.getCurrentCoverage() * 100.0;
+
+        System.out.println("Starting test generation loop. Max iterations: " + args.getMaxIterations() +
+                ", Desired coverage: " + args.getDesiredCoverage() + "%");
+
 
         while (iterationCount < args.getMaxIterations()) {
-            TestGenerationLogger.printIterationHeader(iterationCount + 1, args.getMaxIterations());
+        	System.out.println("--- Iteration " + (iterationCount + 1) + "/" + args.getMaxIterations() + " ---");
+            logCoverage();
 
+            System.out.println("Generating new tests...");
             Map<String, Object> generatedTestsDict = testGen.generateTests(
                     failedTestRuns,
                     language,
@@ -283,49 +307,70 @@ public class CoverAgent {
             List<GeneratedTest> newTests = null;
             if (generatedTestsDict != null && generatedTestsDict.containsKey("new_tests")) {
                 try {
+
                     newTests = (List<GeneratedTest>) generatedTestsDict.get("new_tests");
                 } catch (ClassCastException e) {
-                    TestGenerationLogger.printGenerationError("Invalid test generation result format");
+                    logger.severe("Unexpected type for 'new_tests' in generation result: " + e.getMessage());
                     newTests = null;
                 }
             }
 
-            if (newTests != null && !newTests.isEmpty()) {
-                TestGenerationLogger.printTestGenerationStart(newTests.size());
-                int testCounter = 0;
 
+            if (newTests == null || newTests.isEmpty()) {
+                logger.warning("No new tests were generated in this iteration.");
+
+            } else {
+            	System.out.println("Generated " + newTests.size() + " new test(s). Validating...");
                 for (GeneratedTest generatedTest : newTests) {
-                    if (generatedTest != null && generatedTest.getTestCode() != null && !generatedTest.getTestCode().isBlank()) {
-                        testCounter++;
-                        TestGenerationLogger.printTestValidationStatus(testCounter, newTests.size());
+                    if (generatedTest == null || generatedTest.getTestCode() == null || generatedTest.getTestCode().isBlank()) {
+                        logger.warning("Skipping validation for an empty or null generated test.");
+                        continue;
+                    }
+                    logger.fine("AI-Generated Test:\n" + generatedTest.getTestCode());
+                    try {
                         testValidator.validateTest(generatedTest);
+                    } catch (Exception e) {
+                        logger.log(Level.SEVERE, "Failed to validate generated test: " + e.getMessage(), e);
                     }
                 }
+                System.out.println("Finished validating generated tests for this iteration.");
             }
 
-            testValidator.runCoverage();
-            double currentCoverage = testValidator.getCurrentCoverage() * 100.0;
-            TestGenerationLogger.printCoverageUpdate(previousCoverage, currentCoverage);
-            previousCoverage = currentCoverage;
-
-            if (currentCoverage >= testValidator.getDesiredCoverage()) {
-                targetReached = true;
-                break;
-            }
 
             iterationCount++;
-            failedTestRuns = testValidator.getFailedTestRuns();
-            coverageReport = testValidator.getCodeCoverageReport();
+
+            try {
+            	System.out.println("Re-running coverage analysis after iteration " + iterationCount + "...");
+                testValidator.runCoverage();
+                System.out.println("Coverage analysis complete.");
+
+
+                failedTestRuns = testValidator.getFailedTestRuns();
+                language = testValidator.getLanguage();
+                testFramework = testValidator.getTestingFramework();
+                coverageReport = testValidator.getCodeCoverageReport();
+
+
+                double currentCoveragePercent = testValidator.getCurrentCoverage() * 100.0;
+                double desiredCoveragePercent = (double) testValidator.getDesiredCoverage();
+
+
+                if (currentCoveragePercent >= desiredCoveragePercent) {
+                	System.out.println("Target coverage reached or exceeded.");
+                    targetReached = true;
+                    break;
+                } else {
+                	System.out.println(String.format("Coverage %.2f%% is still below target %.2f%%.",
+                            currentCoveragePercent, desiredCoveragePercent));
+                }
+            } catch (Exception e) {
+                logger.log(Level.SEVERE, "Error running or checking coverage after iteration: " + e.getMessage(), e);
+            }
         }
 
-        TestGenerationLogger.printFinalResults(targetReached, iterationCount,
-                                             testValidator.getCurrentCoverage() * 100.0,
-                                             testValidator.getDesiredCoverage());
 
-        String modelName = args.getModel() != null ? args.getModel() : "[Unknown Model]";
-        long totalInput = testGen.getTotalInputTokenCount() + testValidator.getTotalInputTokenCount();
-        long totalOutput = testGen.getTotalOutputTokenCount() + testValidator.getTotalOutputTokenCount();
-        TestGenerationLogger.printTokenUsage(modelName, totalInput, totalOutput);
+        logFinalCoverage(targetReached, iterationCount);
+        logTokenUsage();
     }
 
     /**
@@ -333,25 +378,37 @@ public class CoverAgent {
      * @param targetReached Whether the desired coverage was reached.
      * @param iterationCount The number of iterations completed.
      */
-    /*private void logFinalCoverage(boolean targetReached, int iterationCount) {
+    private void logFinalCoverage(boolean targetReached, int iterationCount) {
         double finalCoveragePercent = testValidator.getCurrentCoverage() * 100.0;
         int desiredCoveragePercent = testValidator.getDesiredCoverage();
 
         if (targetReached) {
-            logger.info(String.format(
+        	System.out.println(String.format(
                     "SUCCESS: Reached target coverage of %d%% (Actual: %.2f%%) in %d iteration(s).",
                     desiredCoveragePercent,
                     finalCoveragePercent,
                     iterationCount
             ));
+        } else {
+            String failureMessage = String.format(
+                    "Reached maximum iteration limit (%d) without achieving desired coverage of %d%%. " +
+                            "Final Coverage: %.2f%%.",
+                    args.getMaxIterations(),
+                    desiredCoveragePercent,
+                    finalCoveragePercent
+            );
+       
+
+
+          
         }
-    }*/
+    }
 
 
     /**
      * Log the total token usage.
      */
-   /* private void logTokenUsage() {
+    private void logTokenUsage() {
         String modelName = args.getModel() != null ? args.getModel() : "[Unknown Model]";
         long totalInput = (testGen != null ? testGen.getTotalInputTokenCount() : 0) +
                 (testValidator != null ? testValidator.getTotalInputTokenCount() : 0);
@@ -359,29 +416,30 @@ public class CoverAgent {
                 (testValidator != null ? testValidator.getTotalOutputTokenCount() : 0);
 
 
-        logger.info(String.format(
+        System.out.println(String.format(
                 "Token Usage for LLM model %s: Input=%d, Output=%d, Total=%d",
                 modelName,
                 totalInput,
                 totalOutput,
                 totalInput + totalOutput
         ));
-    }*/
+    }
 
 
     /**
      * Log the current coverage information.
      */
-    /*private void logCoverage() {
+    private void logCoverage() {
         double currentCoveragePercent = testValidator.getCurrentCoverage() * 100.0;
 
-        logger.info(String.format(
+        System.out.println(String.format(
                 "Current coverage: %.2f%% (Target: %d%%)",
                 currentCoveragePercent,
                 testValidator.getDesiredCoverage()
         ));
-    }*/
+    }
 
+   
 
     /**
      * Run the complete test generation process: initialize, then generate/validate.
@@ -396,7 +454,7 @@ public class CoverAgent {
                 initResult.getTestFramework(),
                 initResult.getCoverageReport()
         );
-       // logger.info("CoverAgent run finished.");
+        logger.info("CoverAgent run finished.");
     }
 
 }

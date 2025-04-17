@@ -304,10 +304,7 @@ public class AICaller {
                     }
                 }
 
-                logger.info("Streaming callback completed for model: " + modelUsed[0] +
-                        " (Expected: " + instanceModel +
-                        ", prompt tokens: " + tokenCounts[0] +
-                        ", completion tokens: " + tokenCounts[1] + ")");
+              
 
                 return new ModelResponse(contentBuilder.toString(), tokenCounts[0], tokenCounts[1]);
 

@@ -86,7 +86,7 @@ public class DefaultAgentCompletion implements AgentCompletion {
         variables.put("test_file_name", testFileName);
 
         Map<String, String> prompt = promptBuilder.buildPrompt("analyze_test_run_failure", variables);
-        logger.info("Sending prompt for test failure analysis using configured AICaller model.");
+        //logger.info("Sending prompt for test failure analysis using configured AICaller model.");
 
         try {
             ModelResponse response = caller.callModel(prompt, false);

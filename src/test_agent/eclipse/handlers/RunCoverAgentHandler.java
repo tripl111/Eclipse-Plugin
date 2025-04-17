@@ -40,7 +40,7 @@ public class RunCoverAgentHandler extends AbstractHandler {
         if (selection instanceof IStructuredSelection) {
             IStructuredSelection structuredSelection = (IStructuredSelection) selection;
             if (structuredSelection.isEmpty()) {
-                logger.info("Handler: Selection is empty.");
+                //logger.info("Handler: Selection is empty.");
                 return null; // Nothing selected
             }
             Object firstElement = structuredSelection.getFirstElement();
@@ -55,13 +55,13 @@ public class RunCoverAgentHandler extends AbstractHandler {
 
                 // Check if it's a Compilation Unit (source file)
                 if (javaElement instanceof ICompilationUnit) {
-                    logger.info("Handler: Selected element is an ICompilationUnit.");
+                    //logger.info("Handler: Selected element is an ICompilationUnit.");
                     try {
                         // Get the underlying file resource
                         IResource resource = javaElement.getCorrespondingResource();
                         if (resource instanceof IFile && "java".equals(resource.getFileExtension())) {
                             selectedFile = (IFile) resource;
-                            logger.info("Handler: Corresponding resource is an IFile: " + selectedFile.getName());
+                            //logger.info("Handler: Corresponding resource is an IFile: " + selectedFile.getName());
                             // Call the file-specific handler method
                             handleJavaFile(selectedFile, window);
                             return null; // Handled, exit
@@ -75,11 +75,11 @@ public class RunCoverAgentHandler extends AbstractHandler {
                 }
                 // Check if it's the project itself that was selected
                 else if (javaElement instanceof IJavaProject) {
-                     logger.info("Handler: Selected element is an IJavaProject.");
+                    // logger.info("Handler: Selected element is an IJavaProject.");
                      // Fall through to call handleJavaProject below
                 }
                  else {
-                    logger.info("Handler: Selected element is another type of IJavaElement (e.g., package): " + javaElement.getClass().getName() + ". Treating as project selection.");
+                    //logger.info("Handler: Selected element is another type of IJavaElement (e.g., package): " + javaElement.getClass().getName() + ". Treating as project selection.");
                     // Fall through to call handleJavaProject below (or add specific handling)
                 }
 
@@ -94,7 +94,7 @@ public class RunCoverAgentHandler extends AbstractHandler {
             else if (firstElement instanceof IFile) {
                 IFile file = (IFile) firstElement;
                 if ("java".equals(file.getFileExtension())) {
-                    logger.info("Handler: Selected element is directly an IFile.");
+                  //  logger.info("Handler: Selected element is directly an IFile.");
                     handleJavaFile(file, window);
                     return null; // Handled, exit
                 }
@@ -104,7 +104,7 @@ public class RunCoverAgentHandler extends AbstractHandler {
                  IProject project = (IProject) firstElement;
                  javaProject = JavaCore.create(project);
                  if (javaProject != null && javaProject.exists()) {
-                     logger.info("Handler: Selected element is directly an IProject.");
+                    // logger.info("Handler: Selected element is directly an IProject.");
                      handleJavaProject(javaProject, window);
                      return null; // Handled, exit
                  }
@@ -117,7 +117,7 @@ public class RunCoverAgentHandler extends AbstractHandler {
             }
 
         } else {
-             logger.info("Handler: Selection is not an IStructuredSelection.");
+             //logger.info("Handler: Selection is not an IStructuredSelection.");
         }
 
         return null;

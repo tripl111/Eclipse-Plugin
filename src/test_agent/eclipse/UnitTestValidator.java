@@ -520,7 +520,7 @@ public void initialTestSuiteAnalysis() throws Exception {
                 // Step 2: Run the test using the Runner class
                 Runner.CommandResult result = null;
                 for (int i = 0; i < numAttempts; i++) {
-                    logger.info("Running test with the following command: \"" + testCommand + "\"");
+                	System.out.println("Running test with the following command: \"" + testCommand + "\"");
                     result = Runner.runCommand(testCommand, testCommandDir);
                     exitCode = result.getExitCode();
                     if (exitCode != 0) {
@@ -554,7 +554,7 @@ public void initialTestSuiteAnalysis() throws Exception {
                         logger.severe("Error rolling back test file: " + e.getMessage());
                     }
 
-                    logger.info("Skipping a generated test that failed");
+                    System.out.println("Skipping a generated test that failed");
 
                     TestValidationResult failResult = new TestValidationResult.Builder()
                             .status(TestValidationResult.STATUS_FAIL)
@@ -571,7 +571,7 @@ public void initialTestSuiteAnalysis() throws Exception {
 
                     String errorMessage = extractErrorMessage(failResult.toMap());
                     if (errorMessage != null && !errorMessage.isEmpty()) {
-                        logger.severe("Error message summary:\n" + errorMessage);
+                        //logger.info("Error message summary:\n" + errorMessage);
                         failResult = new TestValidationResult.Builder()
                                 .status(TestValidationResult.STATUS_FAIL)
                                 .reason("Test failed")

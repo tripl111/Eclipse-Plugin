@@ -115,6 +115,7 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
         this.selectedFile = selectedFile;
     }
 
+
     @Override
     protected Control createDialogArea(Composite parent) {
         Composite area = (Composite) super.createDialogArea(parent);
@@ -493,17 +494,17 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
             
             // If a file is selected, set it as the source file
             if (selectedFile != null) {
-            	  logger.info("initializeValues: selectedFile is NOT null. Attempting to set sourceFileText.");
+            	  //logger.info("initializeValues: selectedFile is NOT null. Attempting to set sourceFileText.");
                   try {
                       String path = selectedFile.getLocation().toOSString();
-                      logger.info("initializeValues: Path to set: " + path);
+                     // logger.info("initializeValues: Path to set: " + path);
                       if (sourceFileText == null) {
                            logger.severe("initializeValues: sourceFileText is NULL before setting text!");
                       } else {
                            sourceFileText.setText(path);
-                           logger.info("initializeValues: Successfully called sourceFileText.setText().");
+                         //  logger.info("initializeValues: Successfully called sourceFileText.setText().");
                            // Optionally check if it worked immediately:
-                            logger.info("initializeValues: sourceFileText.getText() after set: " + sourceFileText.getText());
+                         //   logger.info("initializeValues: sourceFileText.getText() after set: " + sourceFileText.getText());
                       }
                   } catch (Exception ex) {
                       logger.log(java.util.logging.Level.SEVERE, "initializeValues: Error setting sourceFileText", ex);
@@ -526,7 +527,7 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
             String savedApiKey = SecureStorageUtil.getApiKey();
             if (savedApiKey != null && !savedApiKey.isEmpty()) {
                 apiKeyText.setText(savedApiKey);
-                logger.info("Loaded API key from secure storage");
+               // logger.info("Loaded API key from secure storage");
             }
         }
         
@@ -843,7 +844,7 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
             }
             // Save the API key only if validation passes this far
             SecureStorageUtil.saveApiKey(apiKey);
-            logger.info("API Key validated and saved to secure storage.");
+            //logger.info("API Key validated and saved to secure storage.");
   
         
         SecureStorageUtil.saveApiKey(apiKey);
@@ -868,12 +869,13 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
                 .siteUrl(siteUrlText.getText())
                 .siteName(siteNameText.getText())
                 .build();
+          test_agent.eclipse.util.CoverAgentConsole.install();
 
      // --- Schedule the Job ---
         Job job = new RunCoverAgentJob("Running CoverAgent", args);
         job.schedule(); // Schedule the job to run in the background
 
-        logger.info("CoverAgent job scheduled. Dialog will close.");
+        //logger.info("CoverAgent job scheduled. Dialog will close.");
 
 
         super.okPressed();

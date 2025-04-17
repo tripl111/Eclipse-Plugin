@@ -36,7 +36,7 @@ public class SecureStorageUtil {
             node.put(API_KEY, apiKey, true); // true means encrypt
             securePreferences.flush();
             
-            logger.info("API key saved successfully to secure storage");
+           // logger.info("API key saved successfully to secure storage");
             return true;
         } catch (Exception e) {
             logger.log(Level.SEVERE, "Error saving API key to secure storage", e);
@@ -56,7 +56,7 @@ public class SecureStorageUtil {
             
             if (node.keys().length > 0 && node.get(API_KEY, null) != null) {
                 String apiKey = node.get(API_KEY, "");
-                logger.info("API key retrieved successfully from secure storage");
+              //  logger.info("API key retrieved successfully from secure storage");
                 return apiKey;
             }
             
