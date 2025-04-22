@@ -7,8 +7,10 @@ import org.eclipse.core.resources.IResource;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IPath;
 import org.eclipse.core.runtime.Path;
+import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.IJavaProject;
 import org.eclipse.jdt.core.IPackageFragmentRoot;
+import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.JavaModelException;
 import org.eclipse.jface.dialogs.IDialogConstants;
 import org.eclipse.jface.dialogs.TitleAreaDialog;
@@ -48,8 +50,11 @@ import org.eclipse.core.runtime.IStatus;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.jface.window.Window;
 import org.eclipse.core.resources.IContainer;
+
+import test_agent.eclipse.util.DependencyResolver;
 import test_agent.eclipse.util.SecureStorageUtil;
 import org.eclipse.core.runtime.jobs.Job;
+
 
 import test_agent.eclipse.CoverAgent;
 import test_agent.eclipse.CoverAgentArgs;
@@ -63,6 +68,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 /**
  * Dialog for configuring CoverAgent parameters.
@@ -88,11 +94,8 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
     private Combo coverageTypeCombo;
     private Spinner desiredCoverageSpinner;
     private Text additionalInstructionsText;
-    private Button useReportCoverageCheckbox;
     private Text projectRootText;
     private Spinner maxIterationsSpinner;
-    private Button diffCoverageCheckbox;
-    private Button strictCoverageCheckbox;
     private Button runEachTestSeparatelyCheckbox;
     private Spinner runTestsMultipleTimesSpinner;
     private Text apiKeyText;
@@ -158,11 +161,7 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
         return area;
     }
 
-    // Override getInitialSize to make the dialog larger
-	/*
-	 * @Override protected Point getInitialSize() { return new Point(1800, 2200); //
-	 * Width, height - adjust as needed }
-	 */
+
     /**
      * Create the file paths group
      * 
@@ -331,9 +330,8 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
         
         modelCombo = new Combo(commandGroup, SWT.DROP_DOWN | SWT.READ_ONLY);
         modelCombo.setItems(new String[] {
-        	"deepseek/deepseek-chat-v3-0324:free",
-        	"deepseek/deepseek-chat:free",
-        	"google/gemini-2.5-pro-exp-03-25:free",
+        	"deepseek/deepseek-chat-v3-0324:free"
+        	
             
             
         });
@@ -390,7 +388,7 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
         
         maxIterationsSpinner = new Spinner(advancedGroup, SWT.BORDER);
         maxIterationsSpinner.setMinimum(1);
-        maxIterationsSpinner.setMaximum(100);
+        maxIterationsSpinner.setMaximum(5);
         maxIterationsSpinner.setIncrement(1);
         maxIterationsSpinner.setPageIncrement(5);
         maxIterationsSpinner.setLayoutData(new GridData(SWT.BEGINNING, SWT.CENTER, false, false));
@@ -494,17 +492,14 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
             
             // If a file is selected, set it as the source file
             if (selectedFile != null) {
-            	  //logger.info("initializeValues: selectedFile is NOT null. Attempting to set sourceFileText.");
                   try {
                       String path = selectedFile.getLocation().toOSString();
-                     // logger.info("initializeValues: Path to set: " + path);
                       if (sourceFileText == null) {
                            logger.severe("initializeValues: sourceFileText is NULL before setting text!");
                       } else {
                            sourceFileText.setText(path);
-                         //  logger.info("initializeValues: Successfully called sourceFileText.setText().");
-                           // Optionally check if it worked immediately:
-                         //   logger.info("initializeValues: sourceFileText.getText() after set: " + sourceFileText.getText());
+                           autoPopulateIncludedFiles();
+                      
                       }
                   } catch (Exception ex) {
                       logger.log(java.util.logging.Level.SEVERE, "initializeValues: Error setting sourceFileText", ex);
@@ -516,14 +511,29 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
                 String baseName = fileName.substring(0, fileName.lastIndexOf('.'));
                 
                 try {
-                    IFolder testFolder = project.getFolder("src/test/java");
+                    IFolder testFolder = project.getFolder("src/test/java"); // Or your test source folder
                     if (testFolder.exists()) {
-                        findTestFile(testFolder, baseName + "Test.java");
+                        IFile foundTestFile = findTestFileRecursive(testFolder, baseName + "Test.java"); // Call the new recursive version
+                        if (foundTestFile != null && foundTestFile.exists()) { // Check if found and exists
+                             IPath location = foundTestFile.getLocation();
+                             if (location != null) {
+                                 testFileText.setText(location.toOSString());
+                                 logger.info("Automatically found and set test file: " + location.toOSString());
+                             } else {
+                                 logger.warning("Found test file resource, but could not get its location: " + foundTestFile.getFullPath());
+                             }
+                        } else {
+                             logger.info("Could not automatically find test file named " + baseName + "Test.java" + " in " + testFolder.getFullPath() + " or its subfolders.");
+                        }
+                    } else {
+                         // Added logging for when the assumed test folder doesn't exist
+                         logger.warning("Default test folder src/test/java does not exist in project " + project.getName());
                     }
                 } catch (CoreException e) {
-                    logger.warning("Error finding test folder: " + e.getMessage());
+                    logger.warning("Error finding test folder or searching within it: " + e.getMessage()); // Updated log message
                 }
             }
+            
             String savedApiKey = SecureStorageUtil.getApiKey();
             if (savedApiKey != null && !savedApiKey.isEmpty()) {
                 apiKeyText.setText(savedApiKey);
@@ -534,15 +544,44 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
         // Set default values for other fields
         modelCombo.select(0);
         coverageTypeCombo.select(0);
-        desiredCoverageSpinner.setSelection(80);
+        desiredCoverageSpinner.setSelection(100);
         maxIterationsSpinner.setSelection(2);
         runTestsMultipleTimesSpinner.setSelection(1);
         siteUrlText.setText("http://localhost");
         siteNameText.setText("EclipseCoverAgentPlugin");
         
-        // Load Java files from the project
-       // loadJavaFiles();
+
     }
+    /**
+     * Recursively searches for a file with the given name within a container (folder/project).
+     *
+     * @param container The container to search within.
+     * @param targetFileName The exact name of the file to find.
+     * @return The IFile if found, otherwise null.
+     * @throws CoreException If an error occurs accessing resources.
+     */
+    private IFile findTestFileRecursive(IContainer container, String targetFileName) throws CoreException {
+        if (container == null || !container.exists()) {
+            return null; // Nothing to search if container is invalid
+        }
+        for (IResource resource : container.members()) {
+            if (resource.getType() == IResource.FILE && resource.getName().equals(targetFileName)) {
+                // Found the file directly
+                return (IFile) resource;
+            } else if (resource.getType() == IResource.FOLDER) {
+                // It's a folder, recurse into it
+                IFile foundInSubfolder = findTestFileRecursive((IFolder) resource, targetFileName);
+                if (foundInSubfolder != null) {
+                    // Found it deeper down, return immediately
+                    return foundInSubfolder;
+                }
+                // If not found in that subfolder, continue checking other resources in the current container
+            }
+            // Ignore other resource types (like projects within folders, etc.) for this specific search
+        }
+        // If the loop finishes without returning, the file wasn't found in this container or its descendants
+        return null;
+    } // End of findTestFileRecursive method
 
     /**
      * Check if the project is a Maven project
@@ -580,35 +619,10 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
         }
     }
 
-    /**
-     * Load Java files from the project and populate the included files viewer
-     */
-	/*
-	 * private void loadJavaFiles() { try { IPackageFragmentRoot[] packageRoots =
-	 * javaProject.getPackageFragmentRoots(); for (IPackageFragmentRoot root :
-	 * packageRoots) { if (root.getKind() == IPackageFragmentRoot.K_SOURCE) {
-	 * IResource resource = root.getCorrespondingResource(); if (resource instanceof
-	 * IFolder) { try { loadJavaFilesFromFolder((IFolder) resource); } catch
-	 * (CoreException e) { // TODO Auto-generated catch block e.printStackTrace(); }
-	 * } } } } catch (JavaModelException e) {
-	 * logger.warning("Error loading Java files: " + e.getMessage()); }}
-	 */
+   
     
-
-    /**
-     * Recursively load Java files from the given folder
-     *
-     * @param folder The folder to search
-     * @throws CoreException If an error occurs while accessing the folder
-     */
-	/*
-	 * private void loadJavaFilesFromFolder(IFolder folder) throws CoreException {
-	 * for (IResource resource : folder.members()) { if (resource instanceof IFile
-	 * && "java".equals(resource.getFileExtension())) {
-	 * includedFilePaths.add(resource.getLocation().toOSString()); } else if
-	 * (resource instanceof IFolder) { loadJavaFilesFromFolder((IFolder) resource);
-	 * } } includedFilesViewer.setInput(includedFilePaths); }
-	 */
+    
+    
     /**
      * Browse for a file in the Eclipse workspace and set the selected path to the given text field
      *
@@ -682,6 +696,92 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
             }
         }
     }
+    /**
+     * Attempts to automatically populate the 'Included Files' list based on the
+     * import statements in the currently selected source file.
+     * Requires sourceFileText to be populated and point to a valid file.
+     */
+    // *** ADD THIS ENTIRE METHOD ***
+    private void autoPopulateIncludedFiles() {
+        includedFilePaths.clear(); // Start fresh for auto-population
+
+        String sourcePathString = sourceFileText.getText();
+        if (sourcePathString == null || sourcePathString.trim().isEmpty()) {
+            logger.warning("Source file path is empty, cannot auto-populate dependencies.");
+            updateIncludedFilesViewer(); // Update viewer with empty list
+            return;
+        }
+
+        IPath sourcePath = Path.fromOSString(sourcePathString);
+        IFile sourceIFile = ResourcesPlugin.getWorkspace().getRoot().getFileForLocation(sourcePath);
+
+        if (sourceIFile == null || !sourceIFile.exists()) {
+            logger.warning("Could not find IFile in workspace for source path: " + sourcePathString + ". Cannot auto-populate dependencies.");
+            updateIncludedFilesViewer();
+            return;
+        }
+
+        if (!"java".equalsIgnoreCase(sourceIFile.getFileExtension())) {
+             logger.warning("Source file is not a .java file: " + sourcePathString + ". Skipping dependency resolution.");
+             updateIncludedFilesViewer();
+             return;
+        }
+
+        ICompilationUnit sourceCU = JavaCore.createCompilationUnitFrom(sourceIFile);
+
+        if (sourceCU == null || !sourceCU.exists()) {
+             logger.warning("Could not create ICompilationUnit for: " + sourcePathString + ". Cannot auto-populate dependencies.");
+             updateIncludedFilesViewer();
+             return;
+        }
+
+        // Call the Dependency Resolver
+        logger.info("Calling DependencyResolver for: " + sourceCU.getElementName());
+        List<IFile> dependencies = DependencyResolver.collect(sourceCU);
+
+        // Convert IFiles to OS-specific string paths and add to list
+        List<String> dependencyPaths = dependencies.stream()
+            .map(file -> {
+                IPath location = file.getLocation();
+                return (location != null) ? location.toOSString() : null;
+            })
+            .filter(path -> path != null && !path.trim().isEmpty())
+            .distinct() // Ensure uniqueness
+            .collect(Collectors.toList());
+
+        includedFilePaths.addAll(dependencyPaths);
+
+        // Update the viewer UI
+        updateIncludedFilesViewer();
+
+        // Check all the newly added items by default
+        if (!includedFilePaths.isEmpty()) {
+            includedFilesViewer.setAllChecked(true);
+            logger.info("Auto-populated and checked " + includedFilePaths.size() + " included files based on imports.");
+        } else {
+             logger.info("No project-local source file dependencies found via imports.");
+        }
+    }
+    // *** END OF NEW METHOD ***
+    
+    
+    /**
+     * Helper method to update the included files viewer based on the current
+     * state of the includedFilePaths list.
+     */
+    // *** ADD THIS ENTIRE METHOD ***
+    private void updateIncludedFilesViewer() {
+         if (includedFilesViewer != null && !includedFilesViewer.getTable().isDisposed()) {
+              // Set input to refresh the viewer with the current list contents
+              includedFilesViewer.setInput(includedFilePaths);
+              // Optional: uncomment refresh if setInput isn't enough in some edge cases
+              // includedFilesViewer.refresh();
+         } else {
+              logger.warning("IncludedFilesViewer is null or disposed. Cannot update UI.");
+         }
+    }
+    // *** END OF NEW METHOD ***
+    
 
     /**
      * Add a file to the included files list
@@ -693,22 +793,23 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
                 new WorkbenchContentProvider()); // Use standard Eclipse content structure
 
         dialog.setTitle("Select Included Files");
-        dialog.setMessage("Select files from the workspace to include (folders cannot be selected):");
+        dialog.setMessage("Select one or more files from the workspace to include:");
         dialog.setInput(ResourcesPlugin.getWorkspace().getRoot()); // Start browsing from workspace root
-        dialog.setAllowMultiple(true); // Allow selecting multiple files
+        dialog.setAllowMultiple(true); // **** THIS IS THE KEY CHANGE ****
 
-        // Filter: Show containers (projects, folders) for navigation, but only allow files to be *valid* selections.
+        // Filter: Show containers (projects, folders) for navigation,
+        // but only allow files to be *valid* selections (enforced by validator).
         dialog.addFilter(new ViewerFilter() {
             @Override
             public boolean select(Viewer viewer, Object parentElement, Object element) {
-                // Show projects, folders, and java files initially in the tree
+                // Show projects, folders, and files in the tree
                 if (element instanceof IContainer) { // IProject or IFolder
                     return true; // Always show containers to allow navigation
                 }
                 if (element instanceof IFile) {
-                    // Optionally filter specific file types here if needed, e.g., Java files
+                    // Optional: Filter specific file types here if needed, e.g., Java files
                     // return "java".equals(((IFile) element).getFileExtension());
-                    return true; // Show all files for now, validator will handle selection
+                    return true; // Show all files, validator will handle selection validity
                 }
                 return false;
             }
@@ -718,15 +819,16 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
         dialog.setValidator(new ISelectionStatusValidator() {
             @Override
             public IStatus validate(Object[] selection) {
-                if (selection.length == 0) {
-                    // Allow empty selection for OK if desired, or return error
-                     return new Status(IStatus.ERROR, PlatformUI.PLUGIN_ID, "At least one file must be selected.");
-                    // return Status.OK_STATUS; // If allowing OK with no selection
+                if (selection == null || selection.length == 0) {
+                    // You might want to return OK_STATUS if allowing OK with no selection,
+                    // but usually, you want the user to select at least one.
+                    // return Status.OK_STATUS;
+                    return new Status(IStatus.ERROR, PlatformUI.PLUGIN_ID, "Please select at least one file.");
                 }
                 for (Object obj : selection) {
                     if (!(obj instanceof IFile)) {
-                        // If anything other than a file is selected, it's an error
-                        return new Status(IStatus.ERROR, PlatformUI.PLUGIN_ID, "Only files can be selected, not folders or projects.");
+                        // If anything other than a file is selected (e.g., folder, project), it's an error.
+                        return new Status(IStatus.ERROR, PlatformUI.PLUGIN_ID, "Selection must contain only files.");
                     }
                     // Optional: Add check for file extension here if needed
                     // IFile file = (IFile) obj;
@@ -741,24 +843,35 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
 
         // Open the dialog
         if (dialog.open() == Window.OK) {
-            Object[] results = dialog.getResult(); // Get selected objects
-            boolean changed = false;
-            for (Object result : results) {
-                if (result instanceof IFile) {
-                    IFile file = (IFile) result;
-                    String path = file.getLocation().toOSString();
-                    // Add to list if not already present
-                    if (!includedFilePaths.contains(path)) {
-                        includedFilePaths.add(path);
-                        changed = true;
+            Object[] results = dialog.getResult(); // **** GET MULTIPLE RESULTS ****
+            boolean changed = false; // Track if we actually added anything new
+
+            if (results != null) {
+                for (Object result : results) {
+                    if (result instanceof IFile) {
+                        IFile file = (IFile) result;
+                        IPath location = file.getLocation(); // Get the absolute file system path
+                        if (location != null) {
+                            String path = location.toOSString();
+                            // Add to list if not already present to avoid duplicates
+                            if (!includedFilePaths.contains(path)) {
+                                includedFilePaths.add(path);
+                                changed = true;
+                            }
+                        } else {
+                             logger.warning("Could not get location for selected file: " + file.getFullPath());
+                             // Handle linked resources or other cases where location might be null if necessary
+                        }
                     }
                 }
             }
-            // Update the viewer only if changes were made
+
+            // Update the viewer *only if* changes were made
             if (changed) {
-                // It's often easiest to reset the input after modifying the list
+                // Resetting the input is often the easiest way to update the viewer
+                // after modifying the underlying list.
                 includedFilesViewer.setInput(includedFilePaths);
-                // includedFilesViewer.refresh(); // May also work depending on provider
+                // includedFilesViewer.refresh(); // May also work depending on provider and list type
             }
         }
     }

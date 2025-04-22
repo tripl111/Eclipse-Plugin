@@ -17,7 +17,6 @@ import test_agent.eclipse.CoverAgent;
 import test_agent.eclipse.CoverAgentArgs;
 import test_agent.eclipse.CoverAgentPlugin; // Your plugin activator class
 
-import java.io.File;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 

@@ -571,7 +571,7 @@ public void initialTestSuiteAnalysis() throws Exception {
 
                     String errorMessage = extractErrorMessage(failResult.toMap());
                     if (errorMessage != null && !errorMessage.isEmpty()) {
-                        //logger.info("Error message summary:\n" + errorMessage);
+                        logger.info("Error message summary:\n" + errorMessage);
                         failResult = new TestValidationResult.Builder()
                                 .status(TestValidationResult.STATUS_FAIL)
                                 .reason("Test failed")

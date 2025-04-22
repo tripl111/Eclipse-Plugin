@@ -45,7 +45,7 @@ public class DefaultAgentCompletion implements AgentCompletion {
         variables.put("failed_tests_section", failedTestsSection);
 
         Map<String, String> prompt = promptBuilder.buildPrompt("test_generation_prompt", variables);
-        //logger.info("Sending prompt for test generation using configured AICaller model."+prompt);
+       // System.out.println("Sending prompt for test generation using configured AICaller model."+prompt);
 
         try {
 
@@ -123,7 +123,7 @@ public class DefaultAgentCompletion implements AgentCompletion {
         variables.put("test_file_name", testFileName);
 
         Map<String, String> prompt = promptBuilder.buildPrompt("analyze_suite_test_insert_line", variables);
-        //logger.info("Sending prompt for test insert line analysis using configured AICaller model."+prompt);
+        //System.out.println("Sending prompt for test insert line analysis using configured AICaller model."+prompt);
 
         try {
             ModelResponse response = caller.callModel(prompt, false);
