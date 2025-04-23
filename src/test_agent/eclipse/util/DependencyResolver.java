@@ -32,7 +32,6 @@ public class DependencyResolver {
      *         Returns an empty list if the input is null, doesn't exist, or on error.
      */
     public static List<IFile> collect(ICompilationUnit compilationUnit) {
-        // Use a Set initially to automatically handle duplicates
         Set<IFile> dependencyFiles = new HashSet<>();
 
         if (compilationUnit == null || !compilationUnit.exists()) {
@@ -95,7 +94,6 @@ public class DependencyResolver {
         }
 
         logger.info("Found " + dependencyFiles.size() + " unique project source dependencies for " + compilationUnit.getElementName());
-        // Convert the Set back to a List for the return type
         return new ArrayList<>(dependencyFiles);
     }
 }
