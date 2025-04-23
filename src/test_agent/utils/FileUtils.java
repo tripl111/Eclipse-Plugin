@@ -22,8 +22,6 @@ public final class FileUtils {
     /**
      * Reads the content of a file into a String.
      * Logs an error and returns a descriptive error message string if reading fails.
-     * NOTE: Returning an error message string can be brittle. Consider throwing exceptions in future refactoring.
-     *
      * @param filePath The path to the file.
      * @return The file content as a String, or an error message string starting with "Error reading ".
      */

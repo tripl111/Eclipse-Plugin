@@ -1,0 +1,60 @@
+@startuml CoverAgent Use Case Diagram
+left to right direction
+
+' Actors
+actor "Developer" as dev
+actor "AI Model" as ai
+
+' Main system boundary
+rectangle "CoverAgent Eclipse Plugin" {
+    ' Primary use cases
+    together {
+        usecase "Run CoverAgent" as runCA
+        usecase "Configure Test Generation" as config
+        usecase "Generate Unit Tests" as genTests
+        usecase "Validate Tests" as validate
+        usecase "Monitor Code Coverage" as coverage
+        usecase "View Token Usage Statistics" as stats
+    }
+
+    ' Secondary use cases
+    together {
+        usecase "Select Source File" as selectSource
+        usecase "Choose Test Framework" as chooseFrame
+        usecase "Set Coverage Targets" as setCoverage
+        usecase "Select AI Model" as selectModel
+        usecase "Add Additional Files" as addFiles
+        usecase "Provide Custom Instructions" as addInstr
+    }
+}
+
+' Relationships - Developer
+dev --> runCA
+dev --> config
+dev --> selectSource
+dev --> chooseFrame
+dev --> setCoverage
+dev --> selectModel
+dev --> addFiles
+dev --> addInstr
+
+' Relationships - AI Model
+ai --> genTests
+ai --> validate
+
+' Include relationships
+runCA ..> config : <<include>>
+runCA ..> genTests : <<include>>
+runCA ..> validate : <<include>>
+runCA ..> coverage : <<include>>
+runCA ..> stats : <<include>>
+
+' Extend relationships
+config ..> selectSource : <<extend>>
+config ..> chooseFrame : <<extend>>
+config ..> setCoverage : <<extend>>
+config ..> selectModel : <<extend>>
+config ..> addFiles : <<extend>>
+config ..> addInstr : <<extend>>
+
+@enduml

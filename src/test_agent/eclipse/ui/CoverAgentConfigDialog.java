@@ -82,7 +82,6 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
     private final IJavaProject javaProject;
     private final IFile selectedFile;
     
-    // UI components
     private Text sourceFileText;
     private Text testFileText;
     private Text testOutputFileText;
@@ -100,9 +99,7 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
     private Spinner runTestsMultipleTimesSpinner;
     private Text apiKeyText;
     private Text siteUrlText;
-    private Text siteNameText;
-    
-    // Selected files
+    private Text siteNameText;    
     private List<String> includedFilePaths = new ArrayList<>();
 
     /**
@@ -123,38 +120,24 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
     protected Control createDialogArea(Composite parent) {
         Composite area = (Composite) super.createDialogArea(parent);
         
-        // Create a ScrolledComposite to allow scrolling when dialog content is larger than visible area
         ScrolledComposite scrolledComposite = new ScrolledComposite(area, SWT.V_SCROLL);
         scrolledComposite.setExpandHorizontal(true);
         scrolledComposite.setExpandVertical(true);
         scrolledComposite.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, true));
         
-        // Create the main container for all components
         Composite container = new Composite(scrolledComposite, SWT.NONE);
         container.setLayout(new GridLayout(1, false));
         
         setTitle("CoverAgent Configuration");
         setMessage("Configure parameters for running CoverAgent");
 
-        // File paths group
         createFilePathsGroup(container);
-
-        // Command group
         createCommandGroup(container);
-
-        // Coverage group
         createCoverageGroup(container);
-
-        // Advanced options group
         createAdvancedOptionsGroup(container);
-
-        // API configuration group
         createApiConfigGroup(container);
-
-        // Initialize with default values
         initializeValues();
         
-        // Set the scrolled content and compute the size
         scrolledComposite.setContent(container);
         scrolledComposite.setMinSize(container.computeSize(SWT.DEFAULT, SWT.DEFAULT));
         
@@ -173,7 +156,6 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
         fileGroup.setLayout(new GridLayout(3, false));
         fileGroup.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false, 3, 1));
         
-        // Source file
         Label sourceFileLabel = new Label(fileGroup, SWT.NONE);
         sourceFileLabel.setText("Source File:");
         
@@ -189,7 +171,6 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
             }
         });
         
-        // Test file
         Label testFileLabel = new Label(fileGroup, SWT.NONE);
         testFileLabel.setText("Test File:");
         
@@ -205,7 +186,7 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
             }
         });
         
-        // Test output file
+      
         Label testOutputFileLabel = new Label(fileGroup, SWT.NONE);
         testOutputFileLabel.setText("Test Output File:");
         
@@ -221,7 +202,6 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
             }
         });
         
-        // Coverage report
         Label coverageReportLabel = new Label(fileGroup, SWT.NONE);
         coverageReportLabel.setText("Coverage Report:");
         
@@ -237,7 +217,6 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
             }
         });
         
-        // Project root
         Label projectRootLabel = new Label(fileGroup, SWT.NONE);
         projectRootLabel.setText("Project Root:");
         
@@ -253,7 +232,6 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
             }
         });
         
-        // Included files
         Label includedFilesLabel = new Label(fileGroup, SWT.NONE);
         includedFilesLabel.setText("Included Files:");
         includedFilesLabel.setLayoutData(new GridData(SWT.BEGINNING, SWT.TOP, false, false));
@@ -301,14 +279,12 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
         commandGroup.setLayout(new GridLayout(3, false));
         commandGroup.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false, 3, 1));
         
-        // Test command
         Label testCommandLabel = new Label(commandGroup, SWT.NONE);
         testCommandLabel.setText("Test Command:");
         
         testCommandText = new Text(commandGroup, SWT.BORDER);
         testCommandText.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 2, 1));
         
-        // Test command directory
         Label testCommandDirLabel = new Label(commandGroup, SWT.NONE);
         testCommandDirLabel.setText("Test Command Directory:");
         
@@ -324,7 +300,6 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
             }
         });
         
-        // Model
         Label modelLabel = new Label(commandGroup, SWT.NONE);
         modelLabel.setText("Model:");
         
@@ -349,7 +324,6 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
         coverageGroup.setLayout(new GridLayout(2, false));
         coverageGroup.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false, 3, 1));
         
-        // Coverage type
         Label coverageTypeLabel = new Label(coverageGroup, SWT.NONE);
         coverageTypeLabel.setText("Coverage Type:");
         
@@ -357,7 +331,6 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
         coverageTypeCombo.setItems(new String[] {"jacoco"});
         coverageTypeCombo.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
         
-        // Desired coverage
         Label desiredCoverageLabel = new Label(coverageGroup, SWT.NONE);
         desiredCoverageLabel.setText("Desired Coverage (%):");
         
@@ -382,7 +355,6 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
         advancedGroup.setLayout(new GridLayout(2, false));
         advancedGroup.setLayoutData(new GridData(SWT.FILL, SWT.FILL, true, false, 3, 1));
         
-        // Max iterations
         Label maxIterationsLabel = new Label(advancedGroup, SWT.NONE);
         maxIterationsLabel.setText("Max Iterations:");
         
@@ -393,12 +365,10 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
         maxIterationsSpinner.setPageIncrement(5);
         maxIterationsSpinner.setLayoutData(new GridData(SWT.BEGINNING, SWT.CENTER, false, false));
         
-        // Run each test separately
         runEachTestSeparatelyCheckbox = new Button(advancedGroup, SWT.CHECK);
         runEachTestSeparatelyCheckbox.setText("Run Each Test Separately");
         runEachTestSeparatelyCheckbox.setLayoutData(new GridData(SWT.BEGINNING, SWT.CENTER, false, false, 2, 1));
         
-        // Run tests multiple times
         Label runTestsMultipleTimesLabel = new Label(advancedGroup, SWT.NONE);
         runTestsMultipleTimesLabel.setText("Run Tests Multiple Times:");
         
@@ -409,7 +379,6 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
         runTestsMultipleTimesSpinner.setPageIncrement(1);
         runTestsMultipleTimesSpinner.setLayoutData(new GridData(SWT.BEGINNING, SWT.CENTER, false, false));
         
-        // Additional instructions
         Label additionalInstructionsLabel = new Label(advancedGroup, SWT.NONE);
         additionalInstructionsLabel.setText("Additional Instructions:");
         additionalInstructionsLabel.setLayoutData(new GridData(SWT.BEGINNING, SWT.TOP, false, false));
@@ -430,31 +399,26 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
         apiGroup.setText("API Configuration");
         apiGroup.setLayout(new GridLayout(2, false));
         
-        // Make sure the group takes full width and appropriate height
         GridData apiGroupData = new GridData(SWT.FILL, SWT.FILL, true, false);
-        apiGroupData.horizontalSpan = 1;  // Span the full width of the container
+        apiGroupData.horizontalSpan = 1;  
         apiGroup.setLayoutData(apiGroupData);
 
-        // API key - Make this more prominent
         Label apiKeyLabel = new Label(apiGroup, SWT.NONE);
         apiKeyLabel.setText("OpenRouter API Key (Required):");
         
         apiKeyText = new Text(apiGroup, SWT.BORDER | SWT.PASSWORD);
         apiKeyText.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
 
-        // Add a note about getting an API key
         Label apiKeyNoteLabel = new Label(apiGroup, SWT.NONE);
         apiKeyNoteLabel.setText("Get an API key from openrouter.ai");
         apiKeyNoteLabel.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false, 2, 1));
 
-        // Site URL
         Label siteUrlLabel = new Label(apiGroup, SWT.NONE);
         siteUrlLabel.setText("Site URL:");
         
         siteUrlText = new Text(apiGroup, SWT.BORDER);
         siteUrlText.setLayoutData(new GridData(SWT.FILL, SWT.CENTER, true, false));
 
-        // Site name
         Label siteNameLabel = new Label(apiGroup, SWT.NONE);
         siteNameLabel.setText("Site Name:");
         
@@ -466,31 +430,26 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
      * Initialize the dialog with default values
      */
     private void initializeValues() {
-        // Set default values
         if (javaProject != null) {
             IProject project = javaProject.getProject();
             projectRootText.setText(project.getLocation().toOSString());
             testCommandDirText.setText(project.getLocation().toOSString());
             
-            // Set default test command based on project type
             if (isMavenProject(project)) {
                 testCommandText.setText("mvn -f \"" + project.getLocation().toOSString() + "\" clean test");
             } else if (isGradleProject(project)) {
                 testCommandText.setText("./gradlew test");
             }
             
-            // Set default coverage report path
             if (isMavenProject(project)) {
                 coverageReportText.setText(project.getLocation().append("target/site/jacoco/jacoco.xml").toOSString());
             } else if (isGradleProject(project)) {
                 coverageReportText.setText(project.getLocation().append("build/reports/jacoco/test/jacocoTestReport.xml").toOSString());
             }
             
-            // Set default values for API configuration
             siteUrlText.setText("http://localhost");
             siteNameText.setText("EclipseCoverAgentPlugin");
             
-            // If a file is selected, set it as the source file
             if (selectedFile != null) {
                   try {
                       String path = selectedFile.getLocation().toOSString();
@@ -506,15 +465,14 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
                  }
                 sourceFileText.setText(selectedFile.getLocation().toOSString());
                 
-                // Try to find a corresponding test file
                 String fileName = selectedFile.getName();
                 String baseName = fileName.substring(0, fileName.lastIndexOf('.'));
                 
                 try {
-                    IFolder testFolder = project.getFolder("src/test/java"); // Or your test source folder
+                    IFolder testFolder = project.getFolder("src/test/java"); 
                     if (testFolder.exists()) {
-                        IFile foundTestFile = findTestFileRecursive(testFolder, baseName + "Test.java"); // Call the new recursive version
-                        if (foundTestFile != null && foundTestFile.exists()) { // Check if found and exists
+                        IFile foundTestFile = findTestFileRecursive(testFolder, baseName + "Test.java"); 
+                        if (foundTestFile != null && foundTestFile.exists()) { 
                              IPath location = foundTestFile.getLocation();
                              if (location != null) {
                                  testFileText.setText(location.toOSString());
@@ -526,11 +484,10 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
                              logger.info("Could not automatically find test file named " + baseName + "Test.java" + " in " + testFolder.getFullPath() + " or its subfolders.");
                         }
                     } else {
-                         // Added logging for when the assumed test folder doesn't exist
                          logger.warning("Default test folder src/test/java does not exist in project " + project.getName());
                     }
                 } catch (CoreException e) {
-                    logger.warning("Error finding test folder or searching within it: " + e.getMessage()); // Updated log message
+                    logger.warning("Error finding test folder or searching within it: " + e.getMessage()); 
                 }
             }
             
@@ -566,22 +523,16 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
         }
         for (IResource resource : container.members()) {
             if (resource.getType() == IResource.FILE && resource.getName().equals(targetFileName)) {
-                // Found the file directly
                 return (IFile) resource;
             } else if (resource.getType() == IResource.FOLDER) {
-                // It's a folder, recurse into it
                 IFile foundInSubfolder = findTestFileRecursive((IFolder) resource, targetFileName);
                 if (foundInSubfolder != null) {
-                    // Found it deeper down, return immediately
                     return foundInSubfolder;
                 }
-                // If not found in that subfolder, continue checking other resources in the current container
             }
-            // Ignore other resource types (like projects within folders, etc.) for this specific search
         }
-        // If the loop finishes without returning, the file wasn't found in this container or its descendants
         return null;
-    } // End of findTestFileRecursive method
+    } 
 
     /**
      * Check if the project is a Maven project
@@ -701,14 +652,13 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
      * import statements in the currently selected source file.
      * Requires sourceFileText to be populated and point to a valid file.
      */
-    // *** ADD THIS ENTIRE METHOD ***
     private void autoPopulateIncludedFiles() {
-        includedFilePaths.clear(); // Start fresh for auto-population
+        includedFilePaths.clear(); 
 
         String sourcePathString = sourceFileText.getText();
         if (sourcePathString == null || sourcePathString.trim().isEmpty()) {
             logger.warning("Source file path is empty, cannot auto-populate dependencies.");
-            updateIncludedFilesViewer(); // Update viewer with empty list
+            updateIncludedFilesViewer(); 
             return;
         }
 
@@ -735,26 +685,21 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
              return;
         }
 
-        // Call the Dependency Resolver
-        logger.info("Calling DependencyResolver for: " + sourceCU.getElementName());
         List<IFile> dependencies = DependencyResolver.collect(sourceCU);
 
-        // Convert IFiles to OS-specific string paths and add to list
         List<String> dependencyPaths = dependencies.stream()
             .map(file -> {
                 IPath location = file.getLocation();
                 return (location != null) ? location.toOSString() : null;
             })
             .filter(path -> path != null && !path.trim().isEmpty())
-            .distinct() // Ensure uniqueness
+            .distinct() 
             .collect(Collectors.toList());
 
         includedFilePaths.addAll(dependencyPaths);
 
-        // Update the viewer UI
         updateIncludedFilesViewer();
 
-        // Check all the newly added items by default
         if (!includedFilePaths.isEmpty()) {
             includedFilesViewer.setAllChecked(true);
             logger.info("Auto-populated and checked " + includedFilePaths.size() + " included files based on imports.");
@@ -762,14 +707,13 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
              logger.info("No project-local source file dependencies found via imports.");
         }
     }
-    // *** END OF NEW METHOD ***
+  
     
     
     /**
      * Helper method to update the included files viewer based on the current
      * state of the includedFilePaths list.
      */
-    // *** ADD THIS ENTIRE METHOD ***
     private void updateIncludedFilesViewer() {
          if (includedFilesViewer != null && !includedFilesViewer.getTable().isDisposed()) {
               // Set input to refresh the viewer with the current list contents
@@ -780,7 +724,6 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
               logger.warning("IncludedFilesViewer is null or disposed. Cannot update UI.");
          }
     }
-    // *** END OF NEW METHOD ***
     
 
     /**
@@ -789,22 +732,20 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
     private void addIncludedFile() {
         ElementTreeSelectionDialog dialog = new ElementTreeSelectionDialog(
                 getShell(),
-                new WorkbenchLabelProvider(), // Use standard Eclipse labels
-                new WorkbenchContentProvider()); // Use standard Eclipse content structure
+                new WorkbenchLabelProvider(), 
+                new WorkbenchContentProvider()); 
 
         dialog.setTitle("Select Included Files");
         dialog.setMessage("Select one or more files from the workspace to include:");
-        dialog.setInput(ResourcesPlugin.getWorkspace().getRoot()); // Start browsing from workspace root
-        dialog.setAllowMultiple(true); // **** THIS IS THE KEY CHANGE ****
+        dialog.setInput(ResourcesPlugin.getWorkspace().getRoot()); 
+        dialog.setAllowMultiple(true); 
 
-        // Filter: Show containers (projects, folders) for navigation,
-        // but only allow files to be *valid* selections (enforced by validator).
+        
         dialog.addFilter(new ViewerFilter() {
             @Override
             public boolean select(Viewer viewer, Object parentElement, Object element) {
-                // Show projects, folders, and files in the tree
-                if (element instanceof IContainer) { // IProject or IFolder
-                    return true; // Always show containers to allow navigation
+                if (element instanceof IContainer) { 
+                    return true; 
                 }
                 if (element instanceof IFile) {
                     // Optional: Filter specific file types here if needed, e.g., Java files
@@ -898,34 +839,28 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
  
         @Override
         protected void okPressed() {
-            // --- Start Validation ---
-            setErrorMessage(null); // Clear previous error messages
+            //  Validation 
+            setErrorMessage(null); 
 
             String sourceFilePath = sourceFileText.getText().trim();
             if (sourceFilePath.isEmpty()) {
                 setErrorMessage("Source File path cannot be empty.");
-                sourceFileText.setFocus(); // Optional: set focus to the problematic field
-                return; // Stop processing, keep dialog open
+                sourceFileText.setFocus(); 
+                return; 
             }
             if (!Files.exists(Paths.get(sourceFilePath))) {
                 setErrorMessage("Source File does not exist: " + sourceFilePath);
                 sourceFileText.setFocus();
-                return; // Stop processing, keep dialog open
+                return; 
             }
 
             String testFilePath = testFileText.getText().trim();
-             // Add similar checks for test file if it's mandatory or needs validation
             if (testFilePath.isEmpty()) {
                  setErrorMessage("Test File path cannot be empty.");
                  testFileText.setFocus();
                  return;
             }
-             // Optionally check if test file exists if it MUST exist beforehand
-//            if (!Files.exists(Paths.get(testFilePath))) {
-//                setErrorMessage("Test File does not exist: " + testFilePath);
-//                testFileText.setFocus();
-//                return;
-//            }
+
 
 
             String testCommand = testCommandText.getText().trim();
@@ -947,20 +882,15 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
                  return;
             }
 
-            // Check if API key is provided (already present, but good to keep)
             String apiKey = apiKeyText.getText().trim();
             if (apiKey.isEmpty()) {
-                // Use setErrorMessage instead of a popup for consistency
                 setErrorMessage("OpenRouter API key is required. Please enter a valid API key from openrouter.ai");
-                apiKeyText.setFocus(); // Set focus to the API key field
-                return; // Stop processing, keep dialog open
+                apiKeyText.setFocus(); 
+                return; 
             }
-            // Save the API key only if validation passes this far
             SecureStorageUtil.saveApiKey(apiKey);
-            //logger.info("API Key validated and saved to secure storage.");
   
         
-        SecureStorageUtil.saveApiKey(apiKey);
 
         CoverAgentArgs args = new CoverAgentArgs.Builder()
                 .sourceFilePath(sourceFileText.getText())
@@ -984,12 +914,8 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
                 .build();
           test_agent.eclipse.util.CoverAgentConsole.install();
 
-     // --- Schedule the Job ---
         Job job = new RunCoverAgentJob("Running CoverAgent", args);
-        job.schedule(); // Schedule the job to run in the background
-
-        //logger.info("CoverAgent job scheduled. Dialog will close.");
-
+        job.schedule(); 
 
         super.okPressed();
     }

@@ -15,7 +15,7 @@ import org.eclipse.ui.ide.IDE;
 
 import test_agent.eclipse.CoverAgent;
 import test_agent.eclipse.CoverAgentArgs;
-import test_agent.eclipse.CoverAgentPlugin; // Your plugin activator class
+import test_agent.eclipse.CoverAgentPlugin; 
 
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -29,7 +29,7 @@ public class RunCoverAgentJob extends Job {
     public RunCoverAgentJob(String name, CoverAgentArgs args) {
         super(name);
         this.args = args;
-        setUser(true); // Makes the job visible in the Progress view
+        setUser(true); 
     }
 
     @Override
@@ -38,10 +38,9 @@ public class RunCoverAgentJob extends Job {
         logger.info("Starting CoverAgent job in background...");
 
         try {
-            // --- Execute the long-running task ---
-            CoverAgent coverAgent = new CoverAgent(args, null); // Pass monitor if CoverAgent can use it
+            CoverAgent coverAgent = new CoverAgent(args, null); 
             monitor.subTask("Generating tests...");
-            coverAgent.run(); // This runs in the background thread now
+            coverAgent.run(); 
 
             if (monitor.isCanceled()) {
                 logger.info("CoverAgent job cancelled.");
