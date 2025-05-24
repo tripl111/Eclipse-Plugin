@@ -165,6 +165,7 @@ public class AICaller {
     private ObjectNode createRequestBody(Map<String, String> prompt) {
         ObjectNode requestBody = objectMapper.createObjectNode();
         requestBody.put("model", this.model);
+        requestBody.put("temperature", 0.35);
 
         ArrayNode messages = objectMapper.createArrayNode();
         // Add system message if present

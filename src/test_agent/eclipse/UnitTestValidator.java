@@ -15,6 +15,17 @@ import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import test_agent.utils.LanguageUtils;
+
+ import java.io.ByteArrayInputStream;
+ import java.nio.charset.StandardCharsets;
+ import org.eclipse.core.resources.IFile;
+ import org.eclipse.core.resources.IResource;
+ import org.eclipse.core.resources.IWorkspaceRunnable;
+ import org.eclipse.core.resources.ResourcesPlugin;
+ import org.eclipse.core.runtime.CoreException;
+ import org.eclipse.core.runtime.Path;
+ import org.eclipse.core.runtime.IPath;
+ 
 import static test_agent.utils.FileUtils.getRelativePath;
 import static test_agent.utils.FileUtils.readFile;
 
@@ -497,11 +508,9 @@ public void initialTestSuiteAnalysis() throws Exception {
                 //logger.info("Test file content just before running:\n" + processedTest);
 
                 try {
-                    Files.write(Paths.get(testFilePath), processedTest.getBytes(),
-                            StandardOpenOption.CREATE,          // Create if doesn't exist (usually already does)
-                            StandardOpenOption.TRUNCATE_EXISTING, // Overwrite existing content
-                            StandardOpenOption.WRITE,           // Open for writing
-                            StandardOpenOption.SYNC);
+                    Files.write(Paths.get(testFilePath), 
+                    		processedTest.getBytes()
+                            );
 
 
 
@@ -545,11 +554,9 @@ public void initialTestSuiteAnalysis() throws Exception {
                 if (exitCode != 0) {
                     // Test failed, roll back the test file to its original content
                     try {
-                        Files.write(Paths.get(testFilePath), originalContent.getBytes(),
-                                StandardOpenOption.CREATE,
-                                StandardOpenOption.TRUNCATE_EXISTING,
-                                StandardOpenOption.WRITE,
-                                StandardOpenOption.SYNC);
+                        Files.write(Paths.get(testFilePath), 
+                        		originalContent.getBytes()
+                               );
                     } catch (IOException e) {
                         logger.severe("Error rolling back test file: " + e.getMessage());
                     }
@@ -605,11 +612,9 @@ public void initialTestSuiteAnalysis() throws Exception {
                     if (newPercentageCovered <= currentCoverage) {
                         // Coverage has not increased, rollback the test by removing it from the test file
                         try {
-                            Files.write(Paths.get(testFilePath), originalContent.getBytes(),
-                                    StandardOpenOption.CREATE,
-                                    StandardOpenOption.TRUNCATE_EXISTING,
-                                    StandardOpenOption.WRITE,
-                                    StandardOpenOption.SYNC);
+                            Files.write(Paths.get(testFilePath), 
+                            		originalContent.getBytes()
+                                   );
                         } catch (IOException e) {
                             logger.severe("Error rolling back test file: " + e.getMessage());
                         }
@@ -690,11 +695,9 @@ public void initialTestSuiteAnalysis() throws Exception {
 
                     // Roll back even in case of error
                     try {
-                        Files.write(Paths.get(testFilePath), originalContent.getBytes(),
-                                StandardOpenOption.CREATE,
-                                StandardOpenOption.TRUNCATE_EXISTING,
-                                StandardOpenOption.WRITE,
-                                StandardOpenOption.SYNC);
+                        Files.write(Paths.get(testFilePath), 
+                        		originalContent.getBytes()
+                               );
                     } catch (IOException ioEx) {
                         logger.severe("Error rolling back test file: " + ioEx.getMessage());
                     }

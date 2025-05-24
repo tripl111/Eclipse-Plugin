@@ -305,7 +305,9 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
         
         modelCombo = new Combo(commandGroup, SWT.DROP_DOWN | SWT.READ_ONLY);
         modelCombo.setItems(new String[] {
-        	"deepseek/deepseek-chat-v3-0324:free"
+        	"deepseek/deepseek-chat-v3-0324:free",
+        	"google/gemini-2.5-pro-preview"
+        	
         	
             
             
@@ -501,7 +503,7 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
         // Set default values for other fields
         modelCombo.select(0);
         coverageTypeCombo.select(0);
-        desiredCoverageSpinner.setSelection(100);
+        desiredCoverageSpinner.setSelection(80);
         maxIterationsSpinner.setSelection(2);
         runTestsMultipleTimesSpinner.setSelection(1);
         siteUrlText.setText("http://localhost");
@@ -807,7 +809,7 @@ public class CoverAgentConfigDialog extends TitleAreaDialog {
                 }
             }
 
-            // Update the viewer *only if* changes were made
+            
             if (changed) {
                 // Resetting the input is often the easiest way to update the viewer
                 // after modifying the underlying list.
